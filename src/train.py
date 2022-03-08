@@ -96,7 +96,7 @@ def main():
     for step in range(args.num_train_steps):
         # evaluate agent periodically
 
-        if step % args.eval_freq == 0:
+        if step > 0 and step % args.eval_freq == 0:
             L.log('eval/episode', episode, step)
             with torch.no_grad():
                 evaluate(eval_env, agent, video, args.num_eval_episodes, L, step)

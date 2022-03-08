@@ -26,6 +26,15 @@ FORMAT_CONFIG = {
             ('critic_loss', 'CR_LOSS', 'float'), ('autoencoder_loss', 'AE_LOSS', 'float')
         ],
         'eval': [('step', 'S', 'int'), ('episode_reward', 'ER', 'float')]
+    },
+    'sac': {
+        'train': [
+            ('episode', 'E', 'int'), ('step', 'S', 'int'),
+            ('duration', 'D', 'time'), ('episode_reward', 'R', 'float'),
+            ('batch_reward', 'BR', 'float'), ('actor_loss', 'A_LOSS', 'float'),
+            ('critic_loss', 'CR_LOSS', 'float')
+        ],
+        'eval': [('step', 'S', 'int'), ('episode_reward', 'ER', 'float')]
     }
 }
 

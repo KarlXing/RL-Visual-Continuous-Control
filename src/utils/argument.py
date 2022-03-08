@@ -18,8 +18,6 @@ def parse_args():
     # environment
     parser.add_argument('--domain_name', default='cheetah')
     parser.add_argument('--task_name', default='run')
-    parser.add_argument('--env_image_size', default=100, type=int)
-    parser.add_argument('--agent_image_size', default=84, type=int)
     parser.add_argument('--action_repeat', default=4, type=int)
     parser.add_argument('--frame_stack', default=3, type=int)
     # replay buffer
@@ -30,7 +28,7 @@ def parse_args():
     parser.add_argument('--batch_size', default=128, type=int)
     parser.add_argument('--hidden_dim', default=1024, type=int)
     # eval
-    parser.add_argument('--eval_freq', default=1000, type=int)
+    parser.add_argument('--eval_freq', default=10000, type=int)
     parser.add_argument('--num_eval_episodes', default=10, type=int)
     # critic
     parser.add_argument('--critic_lr', default=1e-3, type=float)
@@ -50,7 +48,7 @@ def parse_args():
     parser.add_argument('--alpha_beta', default=0.5, type=float)
 
     ##### Algorithm-Specific Parameters
-    parser.add_argument('--agent', default='curl', type=str, help='curl, sacae')
+    parser.add_argument('--agent', default='curl', type=str, help='curl, sacae, sac')
     parser.add_argument('--encoder_feature_dim', default=50, type=int)
     parser.add_argument('--num_layers', default=4, type=int)
     parser.add_argument('--num_filters', default=32, type=int)
@@ -78,14 +76,14 @@ def parse_args():
     args = parser.parse_args()
     
     # verification
-    assert (args.agent in ['curl', 'sacae'])
+    assert (args.agent in ['curl', 'sacae', 'sac'])
 
     if args.agent == 'curl':
-        assert(args.env_image_size == 100)
-        assert(args.agent_image_size == 84)
-    elif args.agent == 'sacae':
-        assert(args.env_image_size == 84)
-        assert(args.env_image_size == 84)
+        args.env_image_size = 100
+        args.agent_image_size = 84
+    elif args.agent in ['sacae', 'sac']:
+        args.env_image_size = 84
+        args.agent_image_size = 84
 
     return args
 
