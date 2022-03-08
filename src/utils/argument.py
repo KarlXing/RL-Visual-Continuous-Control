@@ -54,7 +54,6 @@ def parse_args():
     parser.add_argument('--encoder_feature_dim', default=50, type=int)
     parser.add_argument('--num_layers', default=4, type=int)
     parser.add_argument('--num_filters', default=32, type=int)
-    
     # sac_ae
     # curl
 
@@ -70,7 +69,7 @@ def parse_args():
     parser.add_argument('--save_video', default=False, action='store_true')
     parser.add_argument('--save_model', default=False, action='store_true')
     parser.add_argument('--detach_encoder', default=False, action='store_true')
-    parser.add_argument('--log_interval', default=100, type=int)
+    parser.add_argument('--log_interval', default=25, type=int)
     args = parser.parse_args()
     
     # verification

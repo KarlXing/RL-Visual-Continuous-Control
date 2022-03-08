@@ -7,13 +7,35 @@ from utils.argument import parse_args
 from utils.misc import set_seed_everywhere, make_dir, VideoRecorder, eval_mode
 from utils.logger import Logger
 from memory import ReplayBuffer
-from model import CURL_Model
+from model import make_model
 from env import make_envs
 from agent import make_agent
 import dmc2gym
 import time
 import os
 import json
+
+
+def evaluate(env, agent, video, num_episodes, L, step, tag=None):
+    episode_rewards = []
+    for i in range(num_episodes):
+        obs = env.reset()
+        video.init(enabled=(i==0))
+        done = False
+        episode_reward = 0
+        while not done:
+            with eval_mode(agent):
+                action = agent.select_action(obs)
+            obs, reward, done, _ = env.step(action)
+            video.record(env)
+            episode_reward += reward
+
+        if L is not None:
+            video.save(f'{step}.mp4')
+            L.log(f'eval/episode_reward', episode_reward, step)
+        episode_rewards.append(episode_reward)
+    
+    return np.mean(episode_rewards)
 
 
 def main():
@@ -37,7 +59,8 @@ def main():
     
     # prepare env
     env = make_envs(args)
-    
+    eval_env = make_envs(args)
+
     # prepare memory
     action_shape = env.action_space.shape
     agent_obs_shape = (3*args.frame_stack, args.agent_image_size, args.agent_image_size)
@@ -52,17 +75,8 @@ def main():
         device=device,
         image_size=args.agent_image_size,
     )
-    
-    # prepare model
-    model = CURL_Model(agent_obs_shape, 
-                       action_shape, 
-                       args.hidden_dim,
-                       args.encoder_feature_dim,
-                       args.actor_log_std_min,
-                       args.actor_log_std_max,
-                       args.num_layers,
-                       args.num_filters,
-                       device)
+ 
+    model = make_model(agent_obs_shape, action_shape, args, device)
 
 
     # prepare agent
@@ -74,7 +88,7 @@ def main():
     )
     
     # run
-    L = Logger(args.work_dir, use_tb=args.save_tb)
+    L = Logger(args.work_dir, use_tb=args.save_tb, config=args.agent)
 
     episode, episode_reward, done = 0, 0, True
     start_time = time.time()
@@ -82,22 +96,22 @@ def main():
     for step in range(args.num_train_steps):
         # evaluate agent periodically
 
-        # if step % args.eval_freq == 0:
-        #     L.log('eval/episode', episode, step)
-        #     evaluate(env, agent, video, args.num_eval_episodes, L, step,args)
-            # if args.save_model:
-            #     agent.save_curl(model_dir, step)
-            # if args.save_buffer:
-            #     replay_buffer.save(buffer_dir)
+        if step % args.eval_freq == 0:
+            L.log('eval/episode', episode, step)
+            with torch.no_grad():
+                evaluate(eval_env, agent, video, args.num_eval_episodes, L, step)
+            if args.save_model:
+                agent.save_curl(model_dir, step)
+            if args.save_buffer:
+                replay_buffer.save(buffer_dir)
 
         if done:
             if step > 0:
                 if step % args.log_interval == 0:
+                    L.log('train/episode_reward', episode_reward, step)
                     L.log('train/duration', time.time() - start_time, step)
                     L.dump(step)
                 start_time = time.time()
-            if step % args.log_interval == 0:
-                L.log('train/episode_reward', episode_reward, step)
 
             obs = env.reset()
             done = False
@@ -123,9 +137,7 @@ def main():
         next_obs, reward, done, _ = env.step(action)
 
         # allow infinit bootstrap
-        done_bool = 0 if episode_step + 1 == env._max_episode_steps else float(
-            done
-        )
+        done_bool = 0 if episode_step + 1 == env._max_episode_steps else float(done)
         episode_reward += reward
         replay_buffer.add(obs, action, reward, next_obs, done_bool)
 
@@ -133,7 +145,6 @@ def main():
         episode_step += 1
 
 
-    
     
 if __name__ == '__main__':
     torch.multiprocessing.set_start_method('spawn')

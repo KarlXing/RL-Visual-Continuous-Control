@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+import os
 
 def center_crop_image(image, output_size):
     h, w = image.shape[1:]
@@ -63,6 +64,9 @@ class CURL():
         return self.log_alpha.exp()
 
     def select_action(self, obs):
+        if obs.shape[-1] != self.image_size:
+            obs = center_crop_image(obs, self.image_size)
+
         with torch.no_grad():
             obs = torch.FloatTensor(obs).to(self.device)
             obs = obs.unsqueeze(0)
@@ -92,7 +96,7 @@ class CURL():
 
         # get current Q estimates
         current_Q1, current_Q2 = self.model.critic(
-            obs, action, detach_encoder=self.detach_encoder)
+            obs, action, detach=self.detach_encoder)
         critic_loss = F.mse_loss(current_Q1,
                                  target_Q) + F.mse_loss(current_Q2, target_Q)
         if step % self.log_interval == 0:
@@ -104,13 +108,13 @@ class CURL():
         critic_loss.backward()
         self.critic_optimizer.step()
 
-        self.model.critic.log(L, step)
+        # self.model.critic.log(L, step)
 
 
     def update_actor_and_alpha(self, obs, L, step):
         # detach encoder, so we don't update it with the actor loss
-        _, pi, log_pi, log_std = self.model.actor(obs, detach_encoder=True)
-        actor_Q1, actor_Q2 = self.model.critic(obs, pi, detach_encoder=True)
+        _, pi, log_pi, log_std = self.model.actor(obs, detach=True)
+        actor_Q1, actor_Q2 = self.model.critic(obs, pi, detach=True)
 
         actor_Q = torch.min(actor_Q1, actor_Q2)
         actor_loss = (self.alpha.detach() * log_pi - actor_Q).mean()
@@ -128,7 +132,7 @@ class CURL():
         actor_loss.backward()
         self.actor_optimizer.step()
 
-        self.model.actor.log(L, step)
+        # self.model.actor.log(L, step)
 
         self.log_alpha_optimizer.zero_grad()
         alpha_loss = (self.alpha *
@@ -140,10 +144,11 @@ class CURL():
         self.log_alpha_optimizer.step()
         
     
-    def update_curl(self, obs_anchor, obs_pos, L, step):
+    def update_curl(self, x, x_pos, L, step):
         
-        z_a = self.model.curl.encode(obs_anchor)
-        z_pos = self.model.curl.encode(obs_pos, ema=True)
+        z_a = self.model.curl.encode(x)
+        with torch.no_grad():
+            z_pos = self.model.critic_target.encoder(x_pos)
         
         logits = self.model.curl.compute_logits(z_a, z_pos)
         labels = torch.arange(logits.shape[0]).long().to(self.device)
@@ -173,3 +178,8 @@ class CURL():
         if step % self.curl_update_freq == 0:
             obs_anchor, obs_pos = cpc_kwargs["obs_anchor"], cpc_kwargs["obs_pos"]
             self.update_curl(obs_anchor, obs_pos, L, step)
+            
+            
+    def save_curl(self, dir, step):
+        torch.save(self.model.state_dict(), os.path.join(dir, f'{step}.pt'))
+        

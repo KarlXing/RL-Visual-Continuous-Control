@@ -19,6 +19,7 @@ FORMAT_CONFIG = {
         'eval': [('step', 'S', 'int'), ('episode_reward', 'ER', 'float')]
     }
 }
+FORMAT_CONFIG['curl'] = FORMAT_CONFIG['rl']
 
 
 class AverageMeter(object):
