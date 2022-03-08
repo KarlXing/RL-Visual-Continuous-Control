@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
-
 def get_out_shape(in_shape, layers):
 	x = torch.randn(*in_shape).unsqueeze(0)
 	return layers(x).squeeze(0).shape
@@ -25,12 +24,6 @@ def squash(mu, pi, log_pi):
     if log_pi is not None:
         log_pi -= torch.log(F.relu(1 - pi.pow(2)) + 1e-6).sum(-1, keepdim=True)
     return mu, pi, log_pi
-
-
-def tie_weights(src, trg):
-    assert type(src) == type(trg)
-    trg.weight = src.weight
-    trg.bias = src.bias
 
 
 def weight_init(m):

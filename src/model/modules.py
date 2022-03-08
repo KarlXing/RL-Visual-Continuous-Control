@@ -68,6 +68,32 @@ class Encoder(nn.Module):
             x = x.detach()
         return self.projection(x)
 
+class Decoder(nn.Module):
+    def __init__(self, num_channels, feature_dim, num_layers = 4, num_filters = 32):
+        super().__init__()
+
+        self.num_layers = num_layers
+        self.num_filters = num_filters
+        self.out_dim = OUT_DIM[num_layers]
+
+        self.fc = nn.Linear(feature_dim, num_filters * self.out_dim * self.out_dim)
+
+        self.deconvs = nn.ModuleList()
+        for _ in range(self.num_layers - 1):
+            self.deconvs.append(nn.ConvTranspose2d(num_filters, num_filters, 3, stride=1))
+        self.deconvs.append(nn.ConvTranspose2d(num_filters, num_channels, 3, stride=2, output_padding=1))
+
+
+    def forward(self, h):
+        h = torch.relu(self.fc(h))
+        x = h.view(-1, self.num_filters, self.out_dim, self.out_dim)
+        
+        for i in range(0, self.num_layers - 1):
+            x = torch.relu(self.deconvs[i](x))
+
+        obs = self.deconvs[-1](x)
+        return obs
+
 
 class Actor(nn.Module):
     """MLP actor network."""
@@ -152,3 +178,15 @@ class CURL(nn.Module):
         logits = torch.matmul(z_a, Wz)  # (B,B)
         logits = logits - torch.max(logits, 1)[0][:, None]
         return logits
+
+
+class AutoEncoder(nn.Module):
+    def __init__(self, encoder, decoder):
+        super(AutoEncoder, self).__init__()
+        self.encoder = encoder
+        self.decoder = decoder
+
+    def recon(self, x):
+        h = self.encoder(x)
+        recon_x = self.decoder(h)
+        return recon_x

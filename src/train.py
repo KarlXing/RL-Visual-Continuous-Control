@@ -101,7 +101,7 @@ def main():
             with torch.no_grad():
                 evaluate(eval_env, agent, video, args.num_eval_episodes, L, step)
             if args.save_model:
-                agent.save_curl(model_dir, step)
+                agent.save_model(model_dir, step)
             if args.save_buffer:
                 replay_buffer.save(buffer_dir)
 

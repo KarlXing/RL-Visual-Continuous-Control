@@ -50,16 +50,21 @@ def parse_args():
     parser.add_argument('--alpha_beta', default=0.5, type=float)
 
     ##### Algorithm-Specific Parameters
-    parser.add_argument('--agent', default='curl', type=str)
+    parser.add_argument('--agent', default='curl', type=str, help='curl, sacae')
     parser.add_argument('--encoder_feature_dim', default=50, type=int)
     parser.add_argument('--num_layers', default=4, type=int)
     parser.add_argument('--num_filters', default=32, type=int)
-    # sac_ae
-    # curl
 
+    # curl
     parser.add_argument('--curl_update_freq', default=1, type=int)
-    parser.add_argument('--curl_encoder_lr', default=1e-3, type=float)
+    parser.add_argument('--curl_lr', default=1e-3, type=float)
     parser.add_argument('--curl_encoder_tau', default=0.05, type=float)
+
+    # sac_ae
+    parser.add_argument('--sacae_update_freq', default=1, type=int)
+    parser.add_argument('--sacae_autoencoder_lr', default=1e-3, type=int)
+    parser.add_argument('--sacae_autoencoder_beta', default=0.9, type=int)
+    parser.add_argument('--sacae_encoder_tau', default=0.05, type=float)
 
     # misc
     parser.add_argument('--seed', default=1, type=int)
@@ -73,9 +78,14 @@ def parse_args():
     args = parser.parse_args()
     
     # verification
+    assert (args.agent in ['curl', 'sacae'])
+
     if args.agent == 'curl':
         assert(args.env_image_size == 100)
         assert(args.agent_image_size == 84)
-    
+    elif args.agent == 'sacae':
+        assert(args.env_image_size == 84)
+        assert(args.env_image_size == 84)
+
     return args
 
