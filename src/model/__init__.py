@@ -3,7 +3,8 @@ from .model import *
 Model_Config = {
     'sac': SAC_Model,
     'curl': CURL_Model,
-    'sacae': SACAE_Model
+    'sacae': SACAE_Model,
+    'rad': SAC_Model
 }
 
 def make_model(agent_obs_shape, action_shape, args, device):

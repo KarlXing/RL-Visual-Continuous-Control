@@ -48,7 +48,7 @@ def parse_args():
     parser.add_argument('--alpha_beta', default=0.5, type=float)
 
     ##### Algorithm-Specific Parameters
-    parser.add_argument('--agent', default='curl', type=str, help='curl, sacae, sac')
+    parser.add_argument('--agent', default='curl', type=str, help='curl, sacae, sac, rad')
     parser.add_argument('--encoder_feature_dim', default=50, type=int)
     parser.add_argument('--num_layers', default=4, type=int)
     parser.add_argument('--num_filters', default=32, type=int)
@@ -76,9 +76,9 @@ def parse_args():
     args = parser.parse_args()
     
     # verification
-    assert (args.agent in ['curl', 'sacae', 'sac'])
+    assert (args.agent in ['curl', 'sacae', 'sac', 'rad'])
 
-    if args.agent == 'curl':
+    if args.agent in ['curl', 'rad']:
         args.env_image_size = 100
         args.agent_image_size = 84
     elif args.agent in ['sacae', 'sac']:

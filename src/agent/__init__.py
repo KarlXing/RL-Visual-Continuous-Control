@@ -1,3 +1,4 @@
+from .rad import RAD
 from .curl import *
 from .sac_ae import *
 from .sac import *
@@ -5,7 +6,8 @@ from .sac import *
 Agent_Config = {
     'curl': CURL,
     'sacae': SACAE,
-    'sac': SAC
+    'sac': SAC,
+    'rad': RAD
 }
 
 def make_agent(model, device, action_shape, args):
