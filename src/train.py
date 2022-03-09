@@ -74,6 +74,7 @@ def main():
         batch_size=args.batch_size,
         device=device,
         image_size=args.agent_image_size,
+        image_pad=args.image_pad
     )
  
     model = make_model(agent_obs_shape, action_shape, args, device)

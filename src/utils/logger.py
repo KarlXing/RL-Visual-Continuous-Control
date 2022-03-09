@@ -38,6 +38,7 @@ FORMAT_CONFIG = {
     }
 }
 FORMAT_CONFIG['rad'] = FORMAT_CONFIG['sac']
+FORMAT_CONFIG['drq'] = FORMAT_CONFIG['sac']
 
 
 

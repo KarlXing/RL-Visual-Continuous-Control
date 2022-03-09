@@ -64,6 +64,9 @@ def parse_args():
     parser.add_argument('--sacae_autoencoder_beta', default=0.9, type=int)
     parser.add_argument('--sacae_encoder_tau', default=0.05, type=float)
 
+    # drq
+    parser.add_argument('--image_pad', default=4, type=int)
+
     # misc
     parser.add_argument('--seed', default=1, type=int)
     parser.add_argument('--work_dir', default='./log', type=str)
@@ -76,14 +79,17 @@ def parse_args():
     args = parser.parse_args()
     
     # verification
-    assert (args.agent in ['curl', 'sacae', 'sac', 'rad'])
+    assert (args.agent in ['curl', 'sacae', 'sac', 'rad', 'drq'])
 
     if args.agent in ['curl', 'rad']:
         args.env_image_size = 100
         args.agent_image_size = 84
-    elif args.agent in ['sacae', 'sac']:
+    elif args.agent in ['sacae', 'sac', 'drq']:
         args.env_image_size = 84
         args.agent_image_size = 84
+    
+    if args.agent != 'drq':
+        args.image_pad = None
 
     return args
 

@@ -1,13 +1,15 @@
 import torch
+import torch.nn as nn
 from torch.utils.data import Dataset
 import numpy as np
 import time
 from skimage.util.shape import view_as_windows
 import os
+import kornia
 
 class ReplayBuffer(Dataset):
     """Buffer to store environment transitions."""
-    def __init__(self, obs_shape, action_shape, capacity, batch_size, device, image_size=84, transform=None):
+    def __init__(self, obs_shape, action_shape, capacity, batch_size, device, image_size=84, transform=None, image_pad=None):
         self.capacity = capacity
         self.batch_size = batch_size
         self.device = device
@@ -21,6 +23,11 @@ class ReplayBuffer(Dataset):
         self.actions = np.empty((capacity, *action_shape), dtype=np.float32)
         self.rewards = np.empty((capacity, 1), dtype=np.float32)
         self.not_dones = np.empty((capacity, 1), dtype=np.float32)
+        
+        if image_pad is not None:
+            self.aug_trans = nn.Sequential(
+                nn.ReplicationPad2d(image_pad),
+                kornia.augmentation.RandomCrop((obs_shape[-1], obs_shape[-1])))
 
         self.idx = 0
         self.last_save = 0
@@ -49,6 +56,31 @@ class ReplayBuffer(Dataset):
         not_dones = torch.as_tensor(self.not_dones[idxs], device=self.device)
         return obses, actions, rewards, next_obses, not_dones
 
+    def sample_drq(self):
+        idxs = np.random.randint(0, self.capacity if self.full else self.idx, size=self.batch_size)
+        
+        obses = self.obses[idxs]
+        next_obses = self.next_obses[idxs]
+        obses_aug = obses.copy()
+        next_obses_aug = next_obses.copy()
+        
+        obses = torch.as_tensor(obses, device=self.device).float()
+        actions = torch.as_tensor(self.actions[idxs], device=self.device)
+        rewards = torch.as_tensor(self.rewards[idxs], device=self.device)
+        next_obses = torch.as_tensor(next_obses, device=self.device).float()
+        not_dones = torch.as_tensor(self.not_dones[idxs], device=self.device)
+
+        obses_aug = torch.as_tensor(obses_aug, device=self.device).float()
+        next_obses_aug = torch.as_tensor(next_obses_aug, device=self.device).float()
+
+        obses = self.aug_trans(obses)
+        next_obses = self.aug_trans(next_obses)
+
+        obses_aug = self.aug_trans(obses_aug)
+        next_obses_aug = self.aug_trans(next_obses_aug)
+        
+        return obses, actions, rewards, next_obses, not_dones, obses_aug, next_obses_aug
+    
     def sample_rad(self):
         idxs = np.random.randint(0, self.capacity if self.full else self.idx, size=self.batch_size)
         
