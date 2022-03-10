@@ -37,6 +37,30 @@ class SharedCNN(nn.Module):
     def forward(self, x):
         return self.layers(x/255.)
 
+class ATCSharedCNN(nn.Module):
+    def __init__(self, obs_shape, num_layers=4, num_filters=32):
+        super().__init__()
+        assert len(obs_shape) == 3
+        self.num_layers = num_layers
+        self.num_filters = num_filters
+
+        # strides of [2,2,2,1] with final nonlinear layer
+        self.layers = [nn.Conv2d(obs_shape[0], num_filters, 3, stride=2)]
+        self.layers.append(nn.ReLU())
+        for _ in range(1, num_layers-1):
+            self.layers.append(nn.Conv2d(num_filters, num_filters, 3, stride=2))
+            self.layers.append(nn.ReLU())
+        self.layers.append(nn.Conv2d(num_filters, num_filters, 3, stride=1))
+        self.layers.append(nn.ReLU())
+        self.layers.append(Flatten())
+        
+        self.layers = nn.Sequential(*self.layers)
+
+        self.out_dim = get_out_shape(obs_shape, self.layers)[-1]
+        self.apply(weight_init)
+
+    def forward(self, x):
+        return self.layers(x/255.)
 
 class RLProjection(nn.Module):
     def __init__(self, in_dim, out_dim):
@@ -53,6 +77,19 @@ class RLProjection(nn.Module):
     def forward(self, x):
         return self.projection(x)
 
+
+class PlainProjection(nn.Module):
+    def __init__(self, in_dim, out_dim):
+        super().__init__()
+        self.out_dim = out_dim
+        self.projection = nn.Sequential(
+            nn.Linear(in_dim, out_dim)
+        )
+        self.out_dim = out_dim
+        self.apply(weight_init)
+    
+    def forward(self, x):
+        return self.projection(x)    
 
 class Encoder(nn.Module):
     """Convolutional encoder of pixels observations."""
@@ -190,3 +227,31 @@ class AutoEncoder(nn.Module):
         h = self.encoder(x)
         recon_x = self.decoder(h)
         return recon_x
+    
+    
+class ATC(nn.Module):
+    def __init__(self, encoder, atc_hidden_feature_dim):
+        super(ATC, self).__init__()
+        self.encoder = encoder
+        self.W = nn.Parameter(torch.rand(encoder.out_dim, encoder.out_dim))
+
+        self.anchor_mlp = nn.Sequential(
+            nn.Linear(encoder.out_dim, atc_hidden_feature_dim), nn.ReLU(),
+            nn.Linear(atc_hidden_feature_dim, encoder.out_dim))
+
+    def encode(self, x):
+        z = self.encoder(x)
+        return z + self.anchor_mlp(z)
+
+    def compute_logits(self, z_a, z_pos):
+        """
+        Uses logits trick for CURL:
+        - compute (B,B) matrix z_a (W z_pos.T)
+        - positives are all diagonal elements
+        - negatives are all other elements
+        - to compute loss use multiclass cross entropy with identity matrix for labels
+        """
+        Wz = torch.matmul(self.W, z_pos.T)  # (z_dim,B)
+        logits = torch.matmul(z_a, Wz)  # (B,B)
+        logits = logits - torch.max(logits, 1)[0][:, None]
+        return logits

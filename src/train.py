@@ -1,6 +1,3 @@
-from operator import imod
-from pyexpat import model
-from parso import parse
 import torch
 import numpy as np
 from utils.argument import parse_args
@@ -10,7 +7,6 @@ from memory import ReplayBuffer
 from model import make_model
 from env import make_envs
 from agent import make_agent
-import dmc2gym
 import time
 import os
 import json

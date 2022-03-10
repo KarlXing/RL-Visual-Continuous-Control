@@ -7,26 +7,9 @@ import torch
 import torchvision
 import numpy as np
 from termcolor import colored
+import copy
 
 FORMAT_CONFIG = {
-    'curl': {
-        'train': [
-            ('episode', 'E', 'int'), ('step', 'S', 'int'),
-            ('duration', 'D', 'time'), ('episode_reward', 'R', 'float'),
-            ('batch_reward', 'BR', 'float'), ('actor_loss', 'A_LOSS', 'float'),
-            ('critic_loss', 'CR_LOSS', 'float'), ('curl_loss', 'CU_LOSS', 'float')
-        ],
-        'eval': [('step', 'S', 'int'), ('episode_reward', 'ER', 'float')]
-    },
-    'sacae': {
-        'train': [
-            ('episode', 'E', 'int'), ('step', 'S', 'int'),
-            ('duration', 'D', 'time'), ('episode_reward', 'R', 'float'),
-            ('batch_reward', 'BR', 'float'), ('actor_loss', 'A_LOSS', 'float'),
-            ('critic_loss', 'CR_LOSS', 'float'), ('autoencoder_loss', 'AE_LOSS', 'float')
-        ],
-        'eval': [('step', 'S', 'int'), ('episode_reward', 'ER', 'float')]
-    },
     'sac': {
         'train': [
             ('episode', 'E', 'int'), ('step', 'S', 'int'),
@@ -37,9 +20,17 @@ FORMAT_CONFIG = {
         'eval': [('step', 'S', 'int'), ('episode_reward', 'ER', 'float')]
     }
 }
-FORMAT_CONFIG['rad'] = FORMAT_CONFIG['sac']
-FORMAT_CONFIG['drq'] = FORMAT_CONFIG['sac']
+FORMAT_CONFIG['rad'] = copy.deepcopy(FORMAT_CONFIG['sac'])
+FORMAT_CONFIG['drq'] = copy.deepcopy(FORMAT_CONFIG['sac'])
 
+FORMAT_CONFIG['curl'] = copy.deepcopy(FORMAT_CONFIG['sac'])
+FORMAT_CONFIG['curl']['train'].append(('curl_loss', 'CU_LOSS', 'float'))
+
+FORMAT_CONFIG['sacae'] = copy.deepcopy(FORMAT_CONFIG['sac'])
+FORMAT_CONFIG['sacae']['train'].append(('autoencoder_loss', 'AE_LOSS', 'float'))
+
+FORMAT_CONFIG['atc'] = copy.deepcopy(FORMAT_CONFIG['sac'])
+FORMAT_CONFIG['atc']['train'].append(('atc_loss', 'ATC_LOSS', 'float'))
 
 
 class AverageMeter(object):

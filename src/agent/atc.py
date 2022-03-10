@@ -2,81 +2,36 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-import os
+from .sac import SAC
 
 
-def center_crop_image(image, output_size):
-    h, w = image.shape[1:]
-    new_h, new_w = output_size, output_size
-
-    top = (h - new_h)//2
-    left = (w - new_w)//2
-
-    image = image[:, top:top + new_h, left:left + new_w]
-    return image
-
-
-class SAC(object):
+class ATC(SAC):
     def __init__(self, model, device, action_shape, args):
-        self.model = model
-        self.device = device
-        self.actor_update_freq = args.actor_update_freq
-        self.critic_target_update_freq = args.critic_target_update_freq
-        self.critic_tau = args.critic_tau
-        self.encoder_tau = args.critic_encoder_tau
-        self.image_size = args.agent_image_size
-        self.log_interval = args.log_interval
-        self.discount = args.discount
-        self.detach_encoder = args.detach_encoder
+        super().__init__(model, device, action_shape, args)
         
-        self.log_alpha = torch.tensor(np.log(args.init_temperature)).to(device)
-        self.log_alpha.requires_grad = True
-        self.target_entropy = -np.prod(action_shape)
-        
+        # atc does not share encoder target with critic (different from sac_ae and curl)
+        self.atc_encoder_tau = args.atc_encoder_tau
+        self.atc_target_update_freq = args.atc_target_update_freq
+        self.atc_update_freq = args.atc_update_freq
+        self.atc_rl_clip_grad_norm = args.atc_rl_clip_grad_norm
+        self.atc_cpc_clip_grad_norm = args.atc_cpc_clip_grad_norm
+
         # optimizers
-        self.actor_optimizer = torch.optim.Adam(
-            self.model.actor.parameters(), lr=args.actor_lr, betas=(args.actor_beta, 0.999))
+        self.atc_optimizer = torch.optim.Adam(
+            self.model.atc.parameters(), lr=args.atc_lr, betas=(args.atc_beta, 0.999))
 
-        self.critic_optimizer = torch.optim.Adam(
-            self.model.critic.parameters(), lr=args.critic_lr, betas=(args.critic_beta, 0.999))
-
-        self.log_alpha_optimizer = torch.optim.Adam(
-            [self.log_alpha], lr=args.alpha_lr, betas=(args.alpha_beta, 0.999))
-
+        self.cross_entropy_loss = nn.CrossEntropyLoss()
 
         self.train()
         self.model.critic_target.train()
+
 
     def train(self, training=True):
         self.training = training
         self.model.actor.train(training)
         self.model.critic.train(training)
+        self.model.atc.train(training)
 
-    @property
-    def alpha(self):
-        return self.log_alpha.exp()
-
-    def select_action(self, obs):
-        if obs.shape[-1] != self.image_size:
-            obs = center_crop_image(obs, self.image_size)
-            
-        with torch.no_grad():
-            obs = torch.FloatTensor(obs).to(self.device)
-            obs = obs.unsqueeze(0)
-            mu, _, _, _ = self.model.actor(
-                obs, compute_pi=False, compute_log_pi=False
-            )
-            return mu.cpu().data.numpy().flatten()
-
-    def sample_action(self, obs):
-        if obs.shape[-1] != self.image_size:
-            obs = center_crop_image(obs, self.image_size)
-
-        with torch.no_grad():
-            obs = torch.FloatTensor(obs).to(self.device)
-            obs = obs.unsqueeze(0)
-            mu, pi, _, _ = self.model.actor(obs, compute_log_pi=False)
-            return pi.cpu().data.numpy().flatten()
 
     def update_critic(self, obs, action, reward, next_obs, not_done, L, step):
         with torch.no_grad():
@@ -97,6 +52,7 @@ class SAC(object):
         # Optimize the critic
         self.critic_optimizer.zero_grad()
         critic_loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.model.critic.parameters(), self.atc_rl_clip_grad_norm)
         self.critic_optimizer.step()
 
     def update_actor_and_alpha(self, obs, L, step):
@@ -118,6 +74,7 @@ class SAC(object):
         # optimize the actor
         self.actor_optimizer.zero_grad()
         actor_loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.model.actor.parameters(), self.atc_rl_clip_grad_norm)
         self.actor_optimizer.step()
 
         self.log_alpha_optimizer.zero_grad()
@@ -130,8 +87,25 @@ class SAC(object):
         self.log_alpha_optimizer.step()
 
 
+    def update_atc(self, x_a, x_pos, L, step):
+        z_a = self.model.atc.encode(x_a)
+        with torch.no_grad():
+            z_pos = self.model.atc_encoder_target(x_pos)
+        
+        logits = self.model.atc.compute_logits(z_a, z_pos)
+        labels = torch.arange(logits.shape[0]).long().to(self.device)
+        loss = self.cross_entropy_loss(logits, labels)
+        
+        self.atc_optimizer.zero_grad()
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.model.atc.parameters(), self.atc_cpc_clip_grad_norm)
+        self.atc_optimizer.step()
+        if step % self.log_interval == 0:
+            L.log('train/atc_loss', loss, step)        
+    
+
     def update(self, replay_buffer, L, step):
-        obs, action, reward, next_obs, not_done = replay_buffer.sample()
+        obs, action, reward, next_obs, not_done = replay_buffer.sample_atc()
     
         if step % self.log_interval == 0:
             L.log('train/batch_reward', reward.mean(), step)
@@ -140,11 +114,12 @@ class SAC(object):
 
         if step % self.actor_update_freq == 0:
             self.update_actor_and_alpha(obs, L, step)
-
+        
+        if step % self.atc_update_freq == 0:
+            self.update_atc(obs, next_obs, L, step)
+        
         if step % self.critic_target_update_freq == 0:
             self.model.soft_update_params(self.critic_tau, self.encoder_tau)
-
-
-
-    def save_model(self, dir, step):
-        torch.save(self.model.state_dict(), os.path.join(dir, f'{step}.pt'))
+            
+        if step % self.atc_target_update_freq == 0:
+            self.model.soft_update_params_atc(self.atc_encoder_tau)

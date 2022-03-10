@@ -33,8 +33,9 @@ def parse_args():
     # critic
     parser.add_argument('--critic_lr', default=1e-3, type=float)
     parser.add_argument('--critic_beta', default=0.9, type=float)
-    parser.add_argument('--critic_tau', default=0.01, type=float) # try 0.05 or 0.1
-    parser.add_argument('--critic_target_update_freq', default=2, type=int) # try to change it to 1 and retain 0.01 above
+    parser.add_argument('--critic_tau', default=0.01, type=float) 
+    parser.add_argument('--critic_encoder_tau', default=0.05, type=float) 
+    parser.add_argument('--critic_target_update_freq', default=2, type=int)
     # actor
     parser.add_argument('--actor_lr', default=1e-3, type=float)
     parser.add_argument('--actor_beta', default=0.9, type=float)
@@ -64,8 +65,19 @@ def parse_args():
     parser.add_argument('--sacae_autoencoder_beta', default=0.9, type=int)
     parser.add_argument('--sacae_encoder_tau', default=0.05, type=float)
 
-    # drq
+    # drq & atc
     parser.add_argument('--image_pad', default=4, type=int)
+
+    # atc
+    parser.add_argument('--atc_update_freq', default=1, type=int)
+    parser.add_argument('--atc_lr', default=1e-3, type=float)
+    parser.add_argument('--atc_beta', default=0.9, type=float)
+    parser.add_argument('--atc_encoder_tau', default=0.01, type=float)
+    parser.add_argument('--atc_target_update_freq', default=1, type=int)
+    parser.add_argument('--atc_encoder_feature_dim', default=128, type=int)
+    parser.add_argument('--atc_hidden_feature_dim', default=512, type=int)
+    parser.add_argument('--atc_rl_clip_grad_norm', default=1000000, type=float)
+    parser.add_argument('--atc_cpc_clip_grad_norm', default=10, type=float)
 
     # misc
     parser.add_argument('--seed', default=1, type=int)
@@ -79,16 +91,16 @@ def parse_args():
     args = parser.parse_args()
     
     # verification
-    assert (args.agent in ['curl', 'sacae', 'sac', 'rad', 'drq'])
+    assert (args.agent in ['curl', 'sacae', 'sac', 'rad', 'drq', 'atc'])
 
     if args.agent in ['curl', 'rad']:
         args.env_image_size = 100
         args.agent_image_size = 84
-    elif args.agent in ['sacae', 'sac', 'drq']:
+    elif args.agent in ['sacae', 'sac', 'drq', 'atc']:
         args.env_image_size = 84
         args.agent_image_size = 84
     
-    if args.agent != 'drq':
+    if args.agent not in ['drq', 'atc']:
         args.image_pad = None
 
     return args

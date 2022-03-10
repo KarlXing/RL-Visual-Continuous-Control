@@ -81,6 +81,23 @@ class ReplayBuffer(Dataset):
         
         return obses, actions, rewards, next_obses, not_dones, obses_aug, next_obses_aug
     
+    def sample_atc(self):
+        idxs = np.random.randint(0, self.capacity if self.full else self.idx, size=self.batch_size)
+        
+        obses = self.obses[idxs]
+        next_obses = self.next_obses[idxs]
+        
+        obses = torch.as_tensor(obses, device=self.device).float()
+        actions = torch.as_tensor(self.actions[idxs], device=self.device)
+        rewards = torch.as_tensor(self.rewards[idxs], device=self.device)
+        next_obses = torch.as_tensor(next_obses, device=self.device).float()
+        not_dones = torch.as_tensor(self.not_dones[idxs], device=self.device)
+
+        obses = self.aug_trans(obses)
+        next_obses = self.aug_trans(next_obses)
+        
+        return obses, actions, rewards, next_obses, not_dones
+
     def sample_rad(self):
         idxs = np.random.randint(0, self.capacity if self.full else self.idx, size=self.batch_size)
         

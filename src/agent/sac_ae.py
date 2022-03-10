@@ -22,6 +22,7 @@ class SACAE(SAC):
         super().__init__(model, device, action_shape, args)
         
         self.autoencoder_update_freq = args.sacae_update_freq
+        self.encoder_tau = args.sacae_encoder_tau
 
         self.autoencoder_optimizer = torch.optim.Adam(
             self.model.autoencoder.parameters(), lr=args.sacae_autoencoder_lr, betas=(args.sacae_autoencoder_beta, 0.999))

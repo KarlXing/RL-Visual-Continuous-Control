@@ -3,13 +3,15 @@ from .curl import CURL
 from .sac_ae import SACAE
 from .sac import SAC
 from .drq import DRQ
+from .atc import ATC
 
 Agent_Config = {
     'curl': CURL,
     'sacae': SACAE,
     'sac': SAC,
     'rad': RAD,
-    'drq': DRQ
+    'drq': DRQ,
+    'atc': ATC
 }
 
 def make_agent(model, device, action_shape, args):

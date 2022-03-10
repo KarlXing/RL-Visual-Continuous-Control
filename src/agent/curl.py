@@ -5,21 +5,13 @@ import numpy as np
 import os
 from .sac import SAC
 
-def center_crop_image(image, output_size):
-    h, w = image.shape[1:]
-    new_h, new_w = output_size, output_size
-
-    top = (h - new_h)//2
-    left = (w - new_w)//2
-
-    image = image[:, top:top + new_h, left:left + new_w]
-    return image
 
 class CURL(SAC):
     def __init__(self, model, device, action_shape, args):
         super().__init__(model, device, action_shape, args)
 
         self.curl_update_freq = args.curl_update_freq
+        self.encoder_tau = args.curl_encoder_tau
 
         self.curl_optimizer = torch.optim.Adam(
                 self.model.curl.parameters(), lr=args.curl_lr)
@@ -35,8 +27,8 @@ class CURL(SAC):
         self.model.curl.train(training)
 
     
-    def update_curl(self, x, x_pos, L, step):
-        z_a = self.model.curl.encode(x)
+    def update_curl(self, x_a, x_pos, L, step):
+        z_a = self.model.curl.encode(x_a)
         with torch.no_grad():
             z_pos = self.model.critic_target.encoder(x_pos)
         
