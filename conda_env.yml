@@ -1,0 +1,22 @@
+name: visualrl
+channels:
+  - defaults
+dependencies:
+  - python=3.8
+  - pip=21.1.3
+  - numpy=1.19.2
+  - scikit-image=0.18.1
+  - nvidia::cudatoolkit=11.1
+  - pytorch::pytorch
+  - pytorch::torchvision
+  - pytorch::torchaudio
+  - pip:
+    - kornia
+    - git+git://github.com/deepmind/dm_control.git
+    - tb-nightly
+    - imageio==2.9.0
+    - imageio-ffmpeg==0.4.4
+    - mujoco-py<2.2,>=2.1
+    - sklearn
+    - matplotlib
+    - opencv-python==4.5.3.56

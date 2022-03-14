@@ -90,7 +90,7 @@ def main():
     episode, episode_reward, done = 0, 0, True
     start_time = time.time()
 
-    for step in range(args.num_train_steps):
+    for step in range(args.num_train_steps+1):
         # evaluate agent periodically
 
         if step > 0 and step % args.eval_freq == 0:
