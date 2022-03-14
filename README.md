@@ -20,7 +20,7 @@ conda create -n visualrl -f conda_env.yml
 Run the code
 ```
 conda activate visualrl
-python src/train.py --domain_name cheetah  --task_name run
+python src/train.py  --agent drq  --domain_name cheetah  --task_name run
 ```
 
 ## Results
