@@ -11,6 +11,10 @@ import time
 import os
 import json
 
+os.environ['MKL_SERVICE_FORCE_INTEL'] = '1'
+os.environ['MUJOCO_GL'] = 'egl'
+
+torch.backends.cudnn.benchmark = True
 
 def evaluate(env, agent, video, num_episodes, L, step, tag=None):
     episode_rewards = []
