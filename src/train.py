@@ -131,7 +131,7 @@ def main():
 
         # run training update
         if step >= args.init_steps:
-            num_updates = 1 
+            num_updates = 1 if step > args.init_steps else args.init_steps
             for _ in range(num_updates):
                 agent.update(replay_buffer, L, step)
 
