@@ -14,7 +14,6 @@ import torch.nn as nn
 from torch.utils.data import IterableDataset
 import kornia
 from skimage.util.shape import view_as_windows
-from zmq import device
 
 
 def episode_len(episode):
