@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import numpy as np
 import os
 from .sac import SAC
+from .utils import compute_grad_norm
 
 
 class RAD(SAC):

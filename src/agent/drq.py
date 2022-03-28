@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from .sac import SAC
+from .utils import compute_grad_norm
 
 
 class DRQ(SAC):
@@ -41,6 +42,15 @@ class DRQ(SAC):
         # Optimize the critic
         self.critic_optimizer.zero_grad()
         critic_loss.backward()
+        if step % self.log_interval == 0:
+            norm = compute_grad_norm(self.model.critic.encoder)
+            L.log('train_critic/encoder_norm', norm, step)
+        
+            cnn_norm = compute_grad_norm(self.model.critic.encoder.cnn)
+            L.log('train_critic/encoder_cnn_norm', cnn_norm, step)
+
+            projection_norm = compute_grad_norm(self.model.critic.encoder.projection)
+            L.log('train_critic/encoder_projection_norm', projection_norm, step)
         self.critic_optimizer.step()
 
 

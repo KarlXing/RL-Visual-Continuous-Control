@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from .sac import SAC
+from .utils import compute_grad_norm
 
 
 class ATC(SAC):

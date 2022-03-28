@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import numpy as np
 import os
 from .sac import SAC
+from .utils import compute_grad_norm
 
 
 class CURL(SAC):
@@ -38,6 +39,15 @@ class CURL(SAC):
         
         self.curl_optimizer.zero_grad()
         loss.backward()
+        if step % self.log_interval == 0:
+            norm = compute_grad_norm(self.model.critic.encoder)
+            L.log('train_curl/encoder_norm', norm, step)
+        
+            cnn_norm = compute_grad_norm(self.model.critic.encoder.cnn)
+            L.log('train_curl/encoder_cnn_norm', cnn_norm, step)
+
+            projection_norm = compute_grad_norm(self.model.critic.encoder.projection)
+            L.log('train_curl/encoder_projection_norm', projection_norm, step)
         self.curl_optimizer.step()
         if step % self.log_interval == 0:
             L.log('train/curl_loss', loss, step)
