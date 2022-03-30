@@ -61,8 +61,8 @@ def parse_args():
 
     # sac_ae
     parser.add_argument('--sacae_update_freq', default=1, type=int)
-    parser.add_argument('--sacae_autoencoder_lr', default=1e-3, type=int)
-    parser.add_argument('--sacae_autoencoder_beta', default=0.9, type=int)
+    parser.add_argument('--sacae_autoencoder_lr', default=1e-3, type=float)
+    parser.add_argument('--sacae_autoencoder_beta', default=0.9, type=float)
     parser.add_argument('--sacae_encoder_tau', default=0.05, type=float)
 
     # drq & atc
@@ -88,6 +88,7 @@ def parse_args():
     parser.add_argument('--save_model', default=False, action='store_true')
     parser.add_argument('--detach_encoder', default=False, action='store_true')
     parser.add_argument('--log_interval', default=25, type=int)
+    parser.add_argument('--tag', default='', type=str)
     args = parser.parse_args()
     
     # verification
@@ -103,5 +104,7 @@ def parse_args():
     if args.agent not in ['drq', 'atc']:
         args.image_pad = None
 
+    print('sacae lr', args.sacae_autoencoder_lr)
+    return
     return args
 

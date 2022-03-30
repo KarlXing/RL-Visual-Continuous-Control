@@ -48,6 +48,8 @@ def main():
     env_name = args.domain_name + '-' + args.task_name
     exp_name = env_name + '-' + ts + '-im' + str(args.env_image_size) +'-b'  \
     + str(args.batch_size) + '-s' + str(args.seed)  + '-' + args.agent
+    if args.tag:
+        exp_name = exp_name + '-' + args.tag
     args.work_dir = args.work_dir + '/'  + exp_name
     make_dir(args.work_dir)
     video_dir = make_dir(os.path.join(args.work_dir, 'video'))
