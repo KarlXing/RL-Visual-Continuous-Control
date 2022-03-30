@@ -15,6 +15,8 @@ from pathlib import Path
 os.environ['MKL_SERVICE_FORCE_INTEL'] = '1'
 os.environ['MUJOCO_GL'] = 'egl'
 
+torch.backends.cudnn.benchmark = True
+
 def evaluate(env, agent, video, num_episodes, L, step, tag=None):
     episode_rewards = []
     for i in range(num_episodes):
@@ -133,6 +135,7 @@ def main():
                                                    device=device,
                                                    image_size=args.agent_image_size,
                                                    image_pad=args.image_pad)
+
 
             num_updates = 1 if step > args.init_steps else args.init_steps
             for _ in range(num_updates):
