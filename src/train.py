@@ -1,15 +1,16 @@
-import torch
 import numpy as np
+import torch
 from utils.argument import parse_args
 from utils.misc import set_seed_everywhere, make_dir, VideoRecorder, eval_mode
 from utils.logger import Logger
-from memory import ReplayBuffer
+from memory import ReplayBufferStorage, make_replay_buffer
 from model import make_model
 from env import make_envs
 from agent import make_agent
 import time
 import os
 import json
+from pathlib import Path
 
 os.environ['MKL_SERVICE_FORCE_INTEL'] = '1'
 os.environ['MUJOCO_GL'] = 'egl'
@@ -51,7 +52,6 @@ def main():
     make_dir(args.work_dir)
     video_dir = make_dir(os.path.join(args.work_dir, 'video'))
     model_dir = make_dir(os.path.join(args.work_dir, 'model'))
-    buffer_dir = make_dir(os.path.join(args.work_dir, 'buffer'))
     video = VideoRecorder(video_dir if args.save_video else None)
     
     with open(os.path.join(args.work_dir, 'args.json'), 'w') as f:
@@ -67,16 +67,9 @@ def main():
     env_obs_shape = (3*args.frame_stack, args.env_image_size, args.env_image_size)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    replay_buffer = ReplayBuffer(
-        obs_shape=env_obs_shape,
-        action_shape=action_shape,
-        capacity=args.replay_buffer_capacity,
-        batch_size=args.batch_size,
-        device=device,
-        image_size=args.agent_image_size,
-        image_pad=args.image_pad
-    )
- 
+    replay_storage = ReplayBufferStorage(Path(args.work_dir) / 'buffer')
+    replay_buffer = None
+    
     model = make_model(agent_obs_shape, action_shape, args, device)
 
 
@@ -103,11 +96,10 @@ def main():
                 evaluate(eval_env, agent, video, args.num_eval_episodes, L, step)
             if args.save_model:
                 agent.save_model(model_dir, step)
-            if args.save_buffer:
-                replay_buffer.save(buffer_dir)
 
         if done:
             if step > 0:
+                replay_storage.add(obs, None, None, True)  # add the last observation for each episode
                 if step % args.log_interval == 0:
                     L.log('train/episode_reward', episode_reward, step)
                     L.log('train/duration', time.time() - start_time, step)
@@ -131,6 +123,20 @@ def main():
 
         # run training update
         if step >= args.init_steps:
+            if replay_buffer is None:
+                replay_buffer = make_replay_buffer(replay_dir=Path(args.work_dir) / 'buffer',
+                                                   max_size=args.replay_buffer_capacity,
+                                                   batch_size=args.batch_size,
+                                                   num_workers=1,
+                                                   save_snapshot=False,
+                                                   nstep=1,
+                                                   discount=args.discount,
+                                                   obs_shape=env_obs_shape,
+                                                   device=device,
+                                                   image_size=args.agent_image_size,
+                                                   image_pad=args.image_pad)
+
+
             num_updates = 1 if step > args.init_steps else args.init_steps
             for _ in range(num_updates):
                 agent.update(replay_buffer, L, step)
@@ -140,7 +146,7 @@ def main():
         # allow infinit bootstrap
         done_bool = 0 if episode_step + 1 == env._max_episode_steps else float(done)
         episode_reward += reward
-        replay_buffer.add(obs, action, reward, next_obs, done_bool)
+        replay_storage.add(obs, action, reward, done_bool)    
 
         obs = next_obs
         episode_step += 1
@@ -148,5 +154,4 @@ def main():
 
     
 if __name__ == '__main__':
-    torch.multiprocessing.set_start_method('spawn')
     main()
