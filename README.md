@@ -24,13 +24,11 @@ python src/train.py  --agent drq  --domain_name cheetah  --task_name run
 ```
 
 ## Results
-Due to the limited computation resources, I tested all 6 algorithms on two tasks with only one seed. The different performance on two tasks are as expected because of the task difference in difficulty (also seen from Section 4.2 of [DrQ-v2](https://arxiv.org/abs/2107.09645)) and variance from one-seed running . Any benchmark results you get are welcome to share!
+Here's the benchmark results on PlaNet Benchmark tasks. All results are averaged over 5 different seeds. 
 
-![result](assets/result.png "results on cartpole swingup and cheetah run") 
+![result](assets/result.png "benchmark results") 
 
-## Todo List  
-- [ ] Implement replay buffer as DrQ-v2 to speed up training
-- [ ] Benchmark algorithms on more tasks with more seeds (help needed!)
+
 ## Citation
 Please use the bibtex below if you want to cite this repository in your publications:
 ````
