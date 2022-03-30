@@ -49,7 +49,7 @@ def parse_args():
     parser.add_argument('--alpha_beta', default=0.5, type=float)
 
     ##### Algorithm-Specific Parameters
-    parser.add_argument('--agent', default='curl', type=str, help='curl, sacae, sac, rad')
+    parser.add_argument('--agent', default='curl', type=str, help='curl, sacae, sac, rad, drq, atc')
     parser.add_argument('--encoder_feature_dim', default=50, type=int)
     parser.add_argument('--num_layers', default=4, type=int)
     parser.add_argument('--num_filters', default=32, type=int)
@@ -104,7 +104,5 @@ def parse_args():
     if args.agent not in ['drq', 'atc']:
         args.image_pad = None
 
-    print('sacae lr', args.sacae_autoencoder_lr)
-    return
     return args
 
