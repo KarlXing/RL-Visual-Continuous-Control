@@ -7,12 +7,13 @@ dependencies:
   - numpy=1.19.2
   - scikit-image=0.18.1
   - nvidia::cudatoolkit=11.1
-  - pytorch::pytorch
-  - pytorch::torchvision
-  - pytorch::torchaudio
+  - pytorch::pytorch==1.10.0
+  - pytorch::torchvision==0.11.0
   - pip:
     - kornia
-    - git+git://github.com/deepmind/dm_control.git
+    - gym==0.22
+    - git+https://github.com/deepmind/dm_control.git
+    - git+https://github.com/denisyarats/dmc2gym.git@06f7e33
     - tb-nightly
     - imageio==2.9.0
     - imageio-ffmpeg==0.4.4
@@ -20,3 +21,5 @@ dependencies:
     - sklearn
     - matplotlib
     - opencv-python==4.5.3.56
+    - termcolor
+    - numpy<1.24.0
